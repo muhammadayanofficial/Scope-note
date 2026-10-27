@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Saved briefs — ScopeNote</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}" aria-label="ScopeNote home"><span class="brand-mark">s.</span><span class="brand-name">scopenote</span></a>
+    <nav class="top-nav" aria-label="Main navigation"><a class="nav-link" href="{{ url_for('index') }}">New brief</a><a class="nav-link active" href="{{ url_for('history') }}">Saved briefs</a></nav>
+    <div class="topbar-right"><span class="mode-dot"></span><span class="mode-label">Local workspace</span></div>
+  </header>
+  <main class="history-shell">
+    <div class="eyebrow"><span>WORKSPACE</span><span class="eyebrow-slash">/</span><span>ARCHIVE</span></div>
+    <div class="history-heading-row"><div><h1>Past briefs, <em>in one place.</em></h1><p>Open an earlier analysis or export it to keep your project notes together.</p></div><a href="{{ url_for('index') }}" class="primary-button history-new-button"><span>New brief</span><span class="button-arrow">↗</span></a></div>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}{% for category, message in messages %}<p class="flash-message">{{ message }}</p>{% endfor %}{% endif %}{% endwith %}
+    {% if briefs %}
+      <section class="history-list" aria-label="Saved briefs">
+        <div class="history-table-head"><span>PROJECT / BRIEF</span><span>TYPE</span><span>ANALYSIS</span><span>DATE</span><span></span></div>
+        {% for brief in briefs %}
+          <article class="history-row">
+            <div class="history-title-cell"><span class="history-file-icon">SN</span><div><a class="history-title" href="{{ url_for('index', brief=brief.id) }}">{{ brief.title }}</a><span class="history-subtitle">{{ brief.source_text[:100] }}{% if brief.source_text|length > 100 %}…{% endif %}</span></div></div>
+            <div class="history-type">{{ brief.project_type }}</div>
+            <div><span class="mode-pill {{ 'gemini-pill' if brief.mode == 'Gemini' else '' }}">{{ brief.mode }}</span></div>
+            <div class="history-date">{{ brief.created_at[:10] }}</div>
+            <div class="history-actions"><a href="{{ url_for('export_brief', brief_id=brief.id) }}" class="icon-link" aria-label="Export {{ brief.title }}">↓</a><form method="post" action="{{ url_for('remove_brief', brief_id=brief.id) }}" onsubmit="return confirm('Delete this saved brief? This cannot be undone.');"><button class="icon-link delete-link" type="submit" aria-label="Delete {{ brief.title }}">×</button></form></div>
+          </article>
+        {% endfor %}
+      </section>
+    {% else %}
+      <section class="history-empty"><div class="empty-paper-icon"><span></span><span></span><span></span><i></i></div><h2>No saved briefs yet.</h2><p>When you structure a client request, it will be saved here automatically.</p><a href="{{ url_for('index') }}" class="text-button">Create your first brief ↗</a></section>
+    {% endif %}
+    <footer class="page-footer"><span>ScopeNote</span><span>Better briefs. Clearer boundaries. Fewer surprises.</span><span>© {{ current_year }}</span></footer>
+  </main>
+</body>
+</html>

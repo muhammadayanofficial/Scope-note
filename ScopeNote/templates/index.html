@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ScopeNote — Client brief workspace</title>
+  <meta name="description" content="Turn unclear client messages into a structured brief, practical questions and a clear project scope.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}" aria-label="ScopeNote home">
+      <span class="brand-mark">s.</span>
+      <span class="brand-name">scopenote</span>
+    </a>
+    <nav class="top-nav" aria-label="Main navigation">
+      <a class="nav-link {{ 'active' if active_page == 'new' else '' }}" href="{{ url_for('index') }}">New brief</a>
+      <a class="nav-link {{ 'active' if active_page == 'history' else '' }}" href="{{ url_for('history') }}">Saved briefs</a>
+    </nav>
+    <div class="topbar-right">
+      <span class="mode-dot {{ 'is-connected' if gemini_status == 'Connected' else '' }}"></span>
+      <span class="mode-label">{{ gemini_status }}</span>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section class="page-heading">
+      <div class="eyebrow"><span>WORKSPACE</span><span class="eyebrow-slash">/</span><span>PROJECT SCOPING</span></div>
+      <div class="heading-row">
+        <div>
+          <h1>Make the brief <em>make sense.</em></h1>
+          <p class="page-description">Turn scattered client messages into a plan you can actually work from.</p>
+        </div>
+        <div class="document-id"><span class="document-icon">▤</span><span>WORKING DOCUMENT</span></div>
+      </div>
+    </section>
+
+    <section class="workspace-grid">
+      <section class="input-pane" aria-labelledby="input-heading">
+        <div class="pane-heading">
+          <div class="pane-index">01</div>
+          <div>
+            <h2 id="input-heading">Client notes</h2>
+            <p>Paste the request as you received it. Messy is fine.</p>
+          </div>
+        </div>
+
+        <form id="brief-form">
+          <label class="field-label" for="client-message">Original message <span class="required-mark">*</span></label>
+          <textarea id="client-message" name="client_message" required minlength="20" maxlength="20000" placeholder="Hey, I need a website for my bakery. It should show our menu, let people place custom cake enquiries, look good on phones, and be ready before our new branch opens...">{% if saved_brief %}{{ saved_brief.source_text }}{% endif %}</textarea>
+          <div class="input-footer"><span id="character-count">0 characters</span><button type="button" class="text-button" id="load-example">Use sample brief</button></div>
+
+          <div class="field-grid">
+            <div class="field-group">
+              <label class="field-label" for="project-type">Project type</label>
+              <select id="project-type" name="project_type">
+                <option value="">Select a type</option>
+                <option>Website</option>
+                <option>Web app</option>
+                <option>Branding / design</option>
+                <option>Content / marketing</option>
+                <option>Automation</option>
+                <option>Consulting</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="budget">Budget <span class="optional-label">OPTIONAL</span></label>
+              <input id="budget" name="budget" type="text" maxlength="160" placeholder="e.g. PKR 80,000">
+            </div>
+            <div class="field-group full-width">
+              <label class="field-label" for="deadline">Target deadline <span class="optional-label">OPTIONAL</span></label>
+              <input id="deadline" name="deadline" type="text" maxlength="160" placeholder="e.g. first draft by 15 November">
+            </div>
+          </div>
+
+          <div class="submit-area">
+            <button type="submit" class="primary-button" id="analyze-button"><span>Structure this brief</span><span class="button-arrow">↗</span></button>
+            <p class="privacy-note"><span class="lock-mark">▣</span> Saved on this computer. No account required.</p>
+          </div>
+          <p class="form-error" id="form-error" role="alert" hidden></p>
+        </form>
+      </section>
+
+      <section class="report-pane" aria-labelledby="report-heading">
+        <div class="report-topline">
+          <div class="report-file-label"><span class="report-file-mark">SN</span><span>PROJECT BRIEF</span></div>
+          <div id="report-actions" class="report-actions" hidden>
+            <button class="quiet-button" type="button" id="copy-summary">Copy client summary</button>
+            <a class="quiet-button export-button" id="export-link" href="#">Export .md</a>
+          </div>
+        </div>
+
+        <div id="report-empty" class="empty-report">
+          <div class="empty-paper-icon"><span></span><span></span><span></span><i></i></div>
+          <p class="empty-kicker">YOUR WORKING DOCUMENT</p>
+          <h2 id="report-heading">Clarity before commitment.</h2>
+          <p class="empty-copy">Your structured brief will appear here, with the requirements, questions and boundaries worth agreeing before you start.</p>
+          <div class="preview-lines" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+          <div class="empty-bottom"><span class="small-check">✓</span><span>Scope first. Surprises later, less often.</span></div>
+        </div>
+
+        <div id="report-content" class="report-content" hidden>
+          <div class="result-header">
+            <div class="result-kicker"><span id="analysis-mode">LOCAL ANALYSIS</span><span class="result-separator">·</span><span id="brief-number">BRIEF #</span></div>
+            <h2 id="result-title"></h2>
+            <p id="result-summary" class="result-summary"></p>
+          </div>
+          <div class="result-tabs" role="tablist" aria-label="Brief report sections">
+            <button type="button" class="result-tab active" data-tab="overview" role="tab" aria-selected="true">Overview</button>
+            <button type="button" class="result-tab" data-tab="questions" role="tab" aria-selected="false">Questions <span id="question-count" class="tab-count">0</span></button>
+            <button type="button" class="result-tab" data-tab="scope" role="tab" aria-selected="false">Scope & risks</button>
+          </div>
+
+          <div class="result-panel" data-panel="overview" role="tabpanel">
+            <section class="report-section">
+              <div class="section-title-row"><h3>Project goals</h3><span class="section-count" id="goal-count"></span></div>
+              <ul id="goals-list" class="plain-list"></ul>
+            </section>
+            <section class="report-section">
+              <div class="section-title-row"><h3>Requirements captured</h3><span class="section-count" id="requirement-count"></span></div>
+              <ol id="requirements-list" class="numbered-list"></ol>
+            </section>
+            <section class="report-section">
+              <div class="section-title-row"><h3>Suggested deliverables</h3></div>
+              <ul id="deliverables-list" class="check-list"></ul>
+            </section>
+          </div>
+
+          <div class="result-panel" data-panel="questions" role="tabpanel" hidden>
+            <div class="section-intro"><span class="section-eyebrow">BEFORE YOU QUOTE</span><h3>Questions that unlock the scope</h3><p>These are the unknowns most likely to cause delays, rework or mismatched expectations.</p></div>
+            <ol id="questions-list" class="question-list"></ol>
+            <section class="client-summary-box"><div class="summary-box-heading"><h3>Client confirmation draft</h3><button type="button" class="text-button" id="copy-client-summary">Copy text</button></div><p id="client-summary"></p></section>
+          </div>
+
+          <div class="result-panel" data-panel="scope" role="tabpanel" hidden>
+            <section class="report-section">
+              <div class="section-title-row"><h3>Scope boundaries to confirm</h3></div>
+              <ul id="boundaries-list" class="boundary-list"></ul>
+            </section>
+            <section class="report-section">
+              <div class="section-title-row"><h3>Potential risks</h3><span class="section-count" id="risk-count"></span></div>
+              <div id="risks-list" class="risk-list"></div>
+            </section>
+            <section class="report-section">
+              <div class="section-title-row"><h3>Acceptance criteria</h3></div>
+              <ul id="acceptance-list" class="check-list"></ul>
+            </section>
+            <div class="next-step-box"><span class="next-step-label">RECOMMENDED NEXT STEP</span><p id="suggested-next-step"></p></div>
+          </div>
+          <div class="report-foot"><span>ScopeNote / Brief workspace</span><span>Review with the client before committing</span></div>
+        </div>
+        <div id="mode-warning" class="mode-warning" hidden></div>
+      </section>
+    </section>
+    <footer class="page-footer"><span>ScopeNote</span><span>Better briefs. Clearer boundaries. Fewer surprises.</span><span>© {{ current_year }}</span></footer>
+  </main>
+
+  <script>
+    window.SCOPECNOTE_INITIAL_ID = {{ saved_brief.id if saved_brief else 'null' }};
+    window.SCOPECNOTE_INITIAL_DATA = {{ saved_brief.analysis | tojson if saved_brief else 'null' }};
+    window.SCOPECNOTE_INITIAL_SOURCE = {{ saved_brief.source_text | tojson if saved_brief else 'null' }};
+    window.SCOPECNOTE_INITIAL_MODE = {{ saved_brief.mode | tojson if saved_brief else 'null' }};
+    window.SCOPECNOTE_INITIAL_EXPORT = {{ url_for('export_brief', brief_id=saved_brief.id) | tojson if saved_brief else 'null' }};
+  </script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</body>
+</html>
